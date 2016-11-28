@@ -11,16 +11,33 @@ struct Poly {
 	int * coefs;
 };
 
+int max(int a, int b) {
+    return (a > b) ? a : b;
+}
+
+int min(int a, int b) {
+    return (a < b) ? a : b;
+}
+
 struct Poly add(struct Poly a, struct Poly b) {
-	
-	//FIX
 	struct Poly res;
-	//res.degree = a.degree;
-	res.coefs = malloc(res.degree * sizeof(int));
+	res.degree = max(a.degree, b.degree);
+    int aMinDeg = a.degree - a.sizeCoefs + 1, bMinDeg = b.degree - b.sizeCoefs + 1;
+    int minDeg = min(aMinDeg, bMinDeg);
+    res.sizeCoefs = res.degree - minDeg + 1;
+	res.coefs = malloc(res.sizeCoefs * sizeof(int));
 	
-	for (int i = 0; i < a.sizeCoefs; i++) {
-		*(res.coefs + (i * sizeof(int))) = *(a.coefs + (i * sizeof(int)))
-											+ *(b.coefs + (i * sizeof(int)));
+    int currDeg = res.degree;
+	for (int i = 0; i < res.sizeCoefs; i++) {
+		if (currDeg > a.degree || currDeg < aMinDeg)
+            *(res.coefs + (i * sizeof(int))) = *(b.coefs + (i * sizeof(int)));
+        else if (currDeg > b.degree || currDeg < bMinDeg)
+            *(res.coefs + (i * sizeof(int))) = *(a.coefs + (i * sizeof(int)));
+        else {
+            *(res.coefs + (i * sizeof(int))) = *(a.coefs + (i * sizeof(int)))
+                                                + *(b.coefs + (i * sizeof(int)));
+        }
+        currDeg--;
 	}
 }
 
