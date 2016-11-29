@@ -90,12 +90,19 @@ struct Poly karatsuba(struct Poly f, struct Poly g) {
 		halfDeg = g.degree / 2;
 		struct Poly ug; ug.degree = halfDeg; ug.sizeCoefs = halfCoefs; ug.coefs = g.coefs;
 		struct Poly lg; lg.degree = halfDeg; ug.sizeCoefs = halfCoefs; lg.coefs = g.coefs + (halfCoefs * sizeof(int));
+        
+        int n = max(f.degree, g.degree);
 		
 		struct Poly up = karatsuba(uf, ug);
+        up.degree += n;
 		struct Poly low = karatsuba(lf, lg);
 		struct Poly mid = dsub(karatsuba(add(uf, lf), add(ug, lg)), up, low);
+        mid.degree += n / 2;
 		
-		
+		struct Poly resT = add(up, mid);
+        res = add(resT, low);
+        
+        free(resT.coefs);
 	}
 	
 	return res;
