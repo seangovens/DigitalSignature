@@ -79,7 +79,7 @@ void extract(mpz_t R, mpz_t c[(N << 1) - 1]) {
 	}
 }
 
-/* Reduce the given polynomial in 'c' by rducing the entire polynomial by
+/* Reduce the given polynomial in 'c' by reducing the entire polynomial by
    (x^N + 1) and then reducing the remaining coefficients by P. */
 int * modReduce(mpz_t c[(N << 1) - 1]) {
 	for (int i = (N << 1) - 2; i > N - 1; i--) {
@@ -91,7 +91,7 @@ int * modReduce(mpz_t c[(N << 1) - 1]) {
 	int * ret = malloc(N * sizeof(int));
 	
 	for (int i = 0; i < N; i++) {
-		*(ret + (i * sizeof(int))) = mpz_fdiv_r_ui(c[i], c[i], P);
+		*(ret + i) = mpz_fdiv_r_ui(c[i], c[i], P);
 	}
 	
 	return ret;
@@ -106,39 +106,40 @@ void printCoefs(mpz_t c[], int size) {
 }
 
 int * swifft(char x[], const int a[]) {
-	printf("Ayy started\n");
+	//printf("Ayy started\n");
     mpz_t fCoefs[N]; mpz_t gCoefs[N]; mpz_t F; mpz_t G;
-	printf("Test\n");
-	mpz_init(F); printf("Test 2\n"); mpz_init(G);
-	printf("Test 3\n");
-	printf("Ayy done\n");
+	//printf("Test\n");
+	mpz_inits(F, G, NULL);
+	//printf("Test 2\n");
+	//printf("Ayy done\n");
 	
-	printf("Init started\n");
+	//printf("Init started\n");
 	initCharCoefs(fCoefs, x); initIntCoefs(gCoefs, a);
-	printf("Init done\n");
+	//printf("Init done\n");
 	
-	printf("Eval started\n");
+	//printf("Eval started\n");
 	evaluate(F, fCoefs, K_POW); evaluate(G, gCoefs, K_POW);
-	printf("Eval done\n");
+	//printf("Eval done\n");
 	
-	printf("Mul started\n");
+	//printf("Mul started\n");
 	mpz_t R;
 	mpz_init(R);
 	mpz_mul(R, F, G);
-	printf("Mul done\n");
+	//printf("Mul done\n");
 	
-	printf("Extract started\n");
+	//printf("Extract started\n");
 	mpz_t rCoefs[(N << 1) - 1];
 	extract(R, rCoefs);
 	int * ret = modReduce(rCoefs);
-	printf("Extract done\n");
 	
+	//printf("Extract done\n");
 	//printCoefs(rCoefs, N);
 	
-	printf("Free started\n");
+	//printf("Free started\n");
 	freeCoefs(fCoefs, N); freeCoefs(gCoefs, N); freeCoefs(rCoefs, (N << 1) - 1);
 	mpz_clear(F); mpz_clear(G); mpz_clear(R);
-	printf("Free done\n");
+	//int * ret = malloc(64 * sizeof(int));
+	//printf("Free done\n");
 	
 	return ret;
 }
@@ -146,18 +147,13 @@ int * swifft(char x[], const int a[]) {
 int * swifft_entry(char buf[1025]) {
 	int * res = malloc(N * sizeof(int));
 	for (int i = 0; i < M; i++) {
-		//printf("Iteration %d\n", i);
-		printf("swifft started\n");
 		int * temp = swifft(&buf[i * N], a_table[i]);
-		printf("swifft done\n");
 		
 		for (int j = 0; j < N; j++) {
 			//printf("i = %d, j = %d\n", i, j);
-			*(res + (j * sizeof(int))) += *(temp + (j * sizeof(int)));
+			*(res + j) = (*(res + j) + *(temp + j)) % P;
 		}
 	}
-	
-	printf("Done?\n");
 	
 	return res;
 }
