@@ -10,18 +10,16 @@
 
 void freeCoefs(mpz_t a1[], int size);
 
-void initCoefs(mpz_t a1[]);
-
 void evaluate(mpz_t res, mpz_t coefs[], int pow);
 
 void extract(mpz_t R, mpz_t c[]);
 
-int * modReduce(mpz_t c[]);
+short * modReduce(mpz_t c[]);
 
 void printCoefs(mpz_t c[], int size);
 
-int * swifft(char x[], const int a[]);
+short * swifft(char x[], const short a[]);
 
-int * swifft_entry(char buf[1025]);
+short * swifft_entry(char buf[1025]);
 
 #endif

@@ -19,7 +19,7 @@ int main(int argc, char * argv[]) {
 	st = clock();
 	
 	while (fgets(buf, 1025, f)) {
-		int * res = swifft_entry(buf);
+		short * res = swifft_entry(buf);
 		
 		// WRITE TO FILE SOMEHOW
 		

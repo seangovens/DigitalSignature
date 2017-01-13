@@ -4,7 +4,7 @@ const int N = 64;
 const int M = 16;
 const int P = 257;
 
-const int a_table[16][64] = {
+const short a_table[16][64] = {
 	{125,214,86,102,0,223,223,253,188,63,136,214,7,249,137,73,153,31,35,124,221,85,225,13,84,77,118,254,147,138,217,119,137,157,41,142,15,28,209,16,205,216,150,109,46,179,107,236,100,6,212,111,192,225,13,75,100,177,144,210,199,91,104,163},
 	{100,211,170,213,88,216,74,188,52,63,136,126,208,31,119,186,11,102,211,155,223,88,67,246,59,191,111,111,211,90,30,149,132,111,144,219,79,42,166,179,179,97,65,167,199,66,147,143,84,116,181,2,240,228,162,189,66,13,36,136,159,188,160,0},
 	{55,190,122,49,177,250,47,11,126,126,95,75,17,203,123,75,52,25,166,133,52,244,86,236,181,139,151,134,171,147,46,138,167,154,254,157,187,134,15,48,214,234,151,204,215,169,71,74,69,105,89,250,198,214,29,252,233,184,166,124,39,115,77,237},
@@ -35,7 +35,7 @@ void freeCoefs(mpz_t a1[], int size) {
 
 /* Initialize the gmp integers in the provided array. This array must be of
    length N. */
-void initIntCoefs(mpz_t a1[N], const int x[]) {
+void initShortCoefs(mpz_t a1[N], const short x[]) {
 	for (int i = 0; i < N; i++) {
 		//printf("Int iteration %d\n", i);
 		mpz_init_set_si(a1[i], x[i]);
@@ -81,17 +81,17 @@ void extract(mpz_t R, mpz_t c[(N << 1) - 1]) {
 
 /* Reduce the given polynomial in 'c' by reducing the entire polynomial by
    (x^N + 1) and then reducing the remaining coefficients by P. */
-int * modReduce(mpz_t c[(N << 1) - 1]) {
+short * modReduce(mpz_t c[(N << 1) - 1]) {
 	for (int i = (N << 1) - 2; i > N - 1; i--) {
 		mpz_sub(c[i - N], c[i - N], c[i]);
 		//printf("%d\n", i - N + 1);
 		mpz_set_ui(c[i], 0);
 	}
 	
-	int * ret = malloc(N * sizeof(int));
+	short * ret = malloc(N * sizeof(short));
 	
 	for (int i = 0; i < N; i++) {
-		*(ret + i) = mpz_fdiv_r_ui(c[i], c[i], P);
+		*(ret + i) = (short) mpz_fdiv_r_ui(c[i], c[i], P);
 	}
 	
 	return ret;
@@ -105,7 +105,9 @@ void printCoefs(mpz_t c[], int size) {
 	printf("}\n");
 }
 
-int * swifft(char x[], const int a[]) {
+/* Convolve the two given vectors. Each component is calculated modulo our
+   prime P. */
+short * swifft(char x[], const short a[]) {
 	//printf("Ayy started\n");
     mpz_t fCoefs[N]; mpz_t gCoefs[N]; mpz_t F; mpz_t G;
 	//printf("Test\n");
@@ -114,7 +116,7 @@ int * swifft(char x[], const int a[]) {
 	//printf("Ayy done\n");
 	
 	//printf("Init started\n");
-	initCharCoefs(fCoefs, x); initIntCoefs(gCoefs, a);
+	initCharCoefs(fCoefs, x); initShortCoefs(gCoefs, a);
 	//printf("Init done\n");
 	
 	//printf("Eval started\n");
@@ -130,7 +132,7 @@ int * swifft(char x[], const int a[]) {
 	//printf("Extract started\n");
 	mpz_t rCoefs[(N << 1) - 1];
 	extract(R, rCoefs);
-	int * ret = modReduce(rCoefs);
+	short * ret = modReduce(rCoefs);
 	
 	//printf("Extract done\n");
 	//printCoefs(rCoefs, N);
@@ -144,10 +146,11 @@ int * swifft(char x[], const int a[]) {
 	return ret;
 }
 
-int * swifft_entry(char buf[1025]) {
-	int * res = malloc(N * sizeof(int));
+/* Take the given 1KB block and process it according to the SWIFFT specifications. */
+short * swifft_entry(char buf[1025]) {
+	short * res __attribute__((aligned(16))) = malloc(N * sizeof(int));
 	for (int i = 0; i < M; i++) {
-		int * temp = swifft(&buf[i * N], a_table[i]);
+		short * temp __attribute__((aligned(16))) = swifft(&buf[i * N], a_table[i]);
 		
 		for (int j = 0; j < N; j++) {
 			//printf("i = %d, j = %d\n", i, j);
