@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-const int N = 2;
+// AVX2 M/C IP :156.59.7.29
+
+const int N = 2; // 60
 const int M = 16;
 const int P = 257;
 
