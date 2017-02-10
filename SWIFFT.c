@@ -1,17 +1,28 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 // AVX2 M/C IP :156.59.7.29
+#include "SWIFFT.h"
 
-const int N = 2; // 60
+#define SIZE 7
+
+const int N = 4;
 const int M = 16;
 const int P = 257;
 
 struct Poly {
 	int degree;
 	int sizeCoefs;
+	int firstInd;
 	int * coefs;
 };
+
+struct Poly new_poly(int d, int s, int f, int * c) {
+	struct Poly new;
+	new.degree = d;
+	new.sizeCoefs = s;
+	new.firstInd = f;
+	new.coefs = c;
+	
+	return new;
+}
 
 void printCoefs(struct Poly c);
 
@@ -26,57 +37,33 @@ int min(int a, int b) {
 struct Poly add(struct Poly a, struct Poly b) {
 	struct Poly res;
 	res.degree = max(a.degree, b.degree);
-    int aMinDeg = a.degree - a.sizeCoefs + 1, bMinDeg = b.degree - b.sizeCoefs + 1;
-    int minDeg = min(aMinDeg, bMinDeg);
-    res.sizeCoefs = res.degree - minDeg + 1;
-    //printf("BEFORE %d\n", res.sizeCoefs);
-	res.coefs = (int *) malloc(res.sizeCoefs * sizeof(int));
-	//printf("AFTER\n");
+	res.firstInd = SIZE - (res.degree + 1);
+	int a_first = SIZE - (a.degree + 1), b_first = SIZE - (b.degree + 1);
+	res.sizeCoefs = max(a_first + a.sizeCoefs, b_first + b.sizeCoefs) - res.firstInd;
+	res.coefs = (int *) calloc(SIZE, sizeof(int));
 	
-	//printf("Degree: %d\nSizeCoefs: %d\n", res.degree, res.sizeCoefs);
+	for (int i = 0; i < a.sizeCoefs; i++) {
+		res.coefs[a_first + i] = a.coefs[a.firstInd + i];
+	}
 	
-    int currDeg = res.degree;
-	for (int i = 0; i < res.sizeCoefs; i++) {
-		if (currDeg > a.degree || currDeg < aMinDeg)
-            *(res.coefs + i) = *(b.coefs + (b.degree - currDeg));
-        else if (currDeg > b.degree || currDeg < bMinDeg)
-            *(res.coefs + i) = *(a.coefs + (a.degree - currDeg));
-        else {
-            *(res.coefs + i) = *(a.coefs + (a.degree - currDeg)) 
-												+ *(b.coefs + (b.degree - currDeg));
-                                                
-            //printf("a val: %d at %d b val: %d at %d index: %d\n", *(a.coefs + ((a.degree - currDeg)*sizeof(int))), a.degree - currDeg, *(b.coefs + ((b.degree - currDeg)*sizeof(int))), b.degree - currDeg, i);
-        }
-        currDeg--;
+	for (int i = 0; i < b.sizeCoefs; i++) {
+		res.coefs[b_first + i] += b.coefs[b.firstInd + i];
 	}
 	
 	return res;
 }
 
-struct Poly neg(struct Poly a) {
-	struct Poly res;
-	res.degree = a.degree;
-	res.sizeCoefs = a.sizeCoefs;
-	res.coefs = (int *) malloc(res.sizeCoefs * sizeof(int));
-	
-	for (int i = 0; i < res.sizeCoefs; i++) {
-		*(res.coefs + i) = -*(a.coefs + i);
+struct Poly sub(struct Poly a, struct Poly b) {
+	struct Poly b_1;
+	b_1 = new_poly(b.degree, b.sizeCoefs, b.firstInd, (int *) malloc(N * sizeof(int)));
+	for (int i = 0; i < b.sizeCoefs; i++) {
+		b_1.coefs[b.firstInd + i] = -b.coefs[b.firstInd + i];
 	}
 	
+	struct Poly res = add(a, b_1);
+	free(b_1.coefs);
+	
 	return res;
-}
-
-struct Poly dsub(struct Poly a, struct Poly d1, struct Poly d2) {
-	struct Poly d1Neg = neg(d1);
-	struct Poly d2Neg = neg(d2);
-	
-	struct Poly res1 = add(d1Neg, d2Neg);
-	struct Poly res2 = add(res1, a);
-	
-	//printf("%d %d %d\n", res1.coefs, d1Neg.coefs, d2Neg.coefs);
-	free(res1.coefs); free(d1Neg.coefs); //free(d2Neg.coefs);
-	
-	return res2;
 }
 
 struct Poly karatsuba(struct Poly f, struct Poly g) {
@@ -84,42 +71,55 @@ struct Poly karatsuba(struct Poly f, struct Poly g) {
 	
 	//printf("CURR COEFS: %d\n", f.sizeCoefs);
 	
-	if (f.sizeCoefs <= 1) {
-		//printf("End recursion\n");
-		res.degree = f.degree + g.degree;
-		res.sizeCoefs = 1;
-		res.coefs = malloc(sizeof(int));
-		*res.coefs = *f.coefs * *g.coefs;
+	if (f.sizeCoefs == 1) {
+		//printf("F DEG: %d\n", f.degree);
+		res = new_poly(f.degree + g.degree, 1, SIZE - ((f.degree + g.degree) + 1), (int *) malloc(SIZE * sizeof(int)));
+		res.coefs[res.firstInd] = f.coefs[f.firstInd] * g.coefs[g.firstInd];
+		//printf("MUL COEF: %d\n", res.coefs[res.firstInd]);
+		//printf("RES COEF: %d, F COEF: %d, G COEF: %d\n", res.coefs[res.firstInd], f.coefs[f.firstInd], g.coefs[g.firstInd]);
+		//printf("RES FIRSTIND: %d\n", res.firstInd);
 	}
 	else {
 		int halfCoefs = f.sizeCoefs / 2;
 		int halfDeg = f.degree / 2;
-		struct Poly uf; uf.degree = halfDeg; uf.sizeCoefs = halfCoefs; uf.coefs = f.coefs;
-		struct Poly lf; lf.degree = halfDeg; lf.sizeCoefs = halfCoefs; lf.coefs = f.coefs + halfCoefs;
+		struct Poly uf = new_poly(halfDeg, halfCoefs, f.firstInd, f.coefs);
+		struct Poly lf = new_poly(halfDeg, halfCoefs, f.firstInd + halfCoefs, f.coefs);
 		//printf("halfCoefs f: %d\n", halfCoefs);
 		//printf("f address: %d, lf address: %d\n", f.coefs, lf.coefs);
 		
 		halfCoefs = g.sizeCoefs / 2;
 		halfDeg = g.degree / 2;
-		struct Poly ug; ug.degree = halfDeg; ug.sizeCoefs = halfCoefs; ug.coefs = g.coefs;
-		struct Poly lg; lg.degree = halfDeg; lg.sizeCoefs = halfCoefs; lg.coefs = g.coefs + halfCoefs;
+		struct Poly ug = new_poly(halfDeg, halfCoefs, g.firstInd, g.coefs);
+		struct Poly lg = new_poly(halfDeg, halfCoefs, g.firstInd + halfCoefs, g.coefs);
 		//printf("halfCoefs g: %d\n", halfCoefs);
 		//printf("g address: %d, lg address: %d\n", g.coefs, lg.coefs);
         
         int n = max(f.degree, g.degree) + 1;
 		
+		printf("RESULTS OF MUL:\n");
+		//printCoefs(uf);
+		//printCoefs(ug);
 		struct Poly up = karatsuba(uf, ug);
+		//printCoefs(up);
 		struct Poly low = karatsuba(lf, lg);
-		struct Poly mid = dsub(karatsuba(add(uf, lf), add(ug, lg)), up, low);
+		//printCoefs(low);
+		
+		struct Poly a_1 = add(uf, lf);
+		struct Poly a_2 = add(ug, lg);
+		struct Poly k_1 = karatsuba(a_1, a_2);
+		printCoefs(a_1); printCoefs(a_2);
+		printCoefs(k_1);
+		struct Poly s_1 = sub(k_1, up), mid = sub(s_1, low);
+		printCoefs(s_1);
+		printCoefs(mid);
+		
 		up.degree += n;
         mid.degree += n / 2;
 		
 		struct Poly resT = add(up, mid);
         res = add(resT, low);
-        
-		//printCoefs(res);
-		
-        free(resT.coefs);
+		free(a_1.coefs); free(a_2.coefs); free(k_1.coefs); free(s_1.coefs);
+		free(up.coefs); free(low.coefs); free(mid.coefs); free(resT.coefs);
 	}
 	
 	return res;
@@ -138,42 +138,23 @@ struct Poly karatsuba(struct Poly f, struct Poly g) {
 }*/
 
 void printCoefs(struct Poly c) {
-	for (int i = 0; i < c.sizeCoefs; i++) {
-		printf("At %d: %d\n", i, *(c.coefs + i));
+	for (int i = c.firstInd; i < c.firstInd + c.sizeCoefs; i++) {
+		printf("At %d: %d\n", i, c.coefs[i]);
 	}
 	printf("\n");
 }
 
 int main(int argc, char * argv[]) {
-	struct Poly f;
-	struct Poly g;
-	struct Poly r;
+	int fCoefs[SIZE] = {0, 0, 0, 1, 1, 1, 1};
+	struct Poly f = new_poly(3, 4, 3, &fCoefs[0]);
+	int gCoefs[SIZE] = {0, 0, 0, 1, 1, 1, 1};
+	struct Poly g = new_poly(3, 4, 3, &gCoefs[0]);
 	
-	f.degree = 3; g.degree = 3; f.sizeCoefs = 4; g.sizeCoefs = 4;
-	//printf("%d\n", f.sizeCoefs * sizeof(int));
-	f.coefs = (int *) malloc(f.sizeCoefs * sizeof(int));
-	g.coefs = (int *) malloc(g.sizeCoefs * sizeof(int));
-	//int * test = malloc(sizeof(int));
-	
-	//printf("Addresses f: %d %d %d\nAddresses g: %d %d\n", f.coefs + (0 * sizeof(int)), f.coefs + (1 * sizeof(int)), f.coefs + (2 * sizeof(int)), g.coefs + (0 * sizeof(int)), g.coefs + (1 * sizeof(int)));
-	//printf("Test address: %d\n", test);
-	
-	*f.coefs = 1; *(f.coefs + 1) = 4; *(f.coefs + 2) = 1; *(f.coefs + 3) = 4;
-	//printCoefs(f);
-	*g.coefs = 2; *(g.coefs + 1) = 1; *(g.coefs + 2) = 3; *(g.coefs + 3) = 2;
-	printCoefs(f);
-	printCoefs(g);
-	//classical(r, f, g);
-	
-	//printf("Orig f address: %d\n", f.coefs);
-	//printf("Orig g address: %d\n", g.coefs);
-	
-	r = karatsuba(f, g);
-	//printf("END\n");
+	struct Poly r = karatsuba(f, g);
 	
 	printCoefs(r);
+	
+	free(r.coefs);
     
-    free(f.coefs); free(g.coefs); free(r.coefs);
-
 	return 0;
 }
