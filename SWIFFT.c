@@ -11,15 +11,14 @@ struct Poly {
 	int degree;
 	int sizeCoefs;
 	int firstInd;
-	int * coefs;
+	int coefs[SIZE];
 };
 
-struct Poly new_poly(int d, int s, int f, int * c) {
+struct Poly new_poly(int d, int s, int f) {
 	struct Poly new;
 	new.degree = d;
 	new.sizeCoefs = s;
 	new.firstInd = f;
-	new.coefs = c;
 	
 	return new;
 }
@@ -125,6 +124,10 @@ struct Poly karatsuba(struct Poly f, struct Poly g) {
 	return res;
 }
 
+struct Poly wannamethod(struct Poly f, struct Poly g) {
+	
+}
+
 /*void classical(int * res, int f[N], int g[N]) {
 	for (int i = 0; i < N; i++) {
 		int coef = 0;
@@ -146,11 +149,14 @@ void printCoefs(struct Poly c) {
 
 int main(int argc, char * argv[]) {
 	int fCoefs[SIZE] = {0, 0, 0, 1, 1, 1, 1};
-	struct Poly f = new_poly(3, 4, 3, &fCoefs[0]);
-	int gCoefs[SIZE] = {0, 0, 0, 1, 1, 1, 1};
-	struct Poly g = new_poly(3, 4, 3, &gCoefs[0]);
+	struct Poly f = new_poly(3, 4, 3);
+	memcpy(f.coefs, fCoefs, sizeof(f.coefs));
 	
-	struct Poly r = karatsuba(f, g);
+	int gCoefs[SIZE] = {0, 0, 0, 1, 1, 1, 1};
+	struct Poly g = new_poly(3, 4, 3);
+	memcpy(g.coefs, gCoefs, sizeof(g.coefs));
+	
+	struct Poly r = wannamethod(f, g);
 	
 	printCoefs(r);
 	
