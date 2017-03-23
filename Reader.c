@@ -13,13 +13,18 @@ int main(int argc, char * argv[]) {
 	FILE * out;
 	
 	f = fopen(argv[1], "r");
-	char buf[1025];
+	char buf[129];
 	
-	clock_t st, en;
-	st = clock();
+	int x_arr[16][127];
+	int ind = 0;
 	
-	while (fgets(buf, 1025, f)) {
-		short * res = swifft_entry(buf);
+	while (fgets(buf, 129, f)) {
+		
+		for (int i = 0; i < 129; i++) {
+			for (int j = 0; j < 8; j++) {
+				x_arr[i / 8][((i % 8) * 8) + j + 63] = (buf[i] >> j) & 1;
+			}
+		}
 		
 		// WRITE TO FILE SOMEHOW
 		
@@ -29,7 +34,14 @@ int main(int argc, char * argv[]) {
 		}
 		printf("}\n");*/
 		
-		free(res);
+		ind++;
+	}
+	
+	clock_t st, en;
+	st = clock();
+	
+	for (int i = 0; i < 4096; i++) {
+		swifft(x_arr);
 	}
 	
 	en = clock();
