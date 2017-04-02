@@ -1,14 +1,14 @@
 CC = gcc
-flags = -g -std=c11
+flags = -g -std=c11 -mavx -msse4
 file = Reader.c
-obj = SWIFFT.o
+obj = swifft.o
 
 all: $(obj) swifft
 
-SWIFFT.o: SWIFFT.c SWIFFT.h
-	$(CC) $(flags) -c SWIFFT.c -o SWIFFT.o
+swifft.o: swifft.c swifft.h
+	$(CC) $(flags) -c swifft.c -o swifft.o
 
-swifft: Reader.c SWIFFT.o
+swifft: Reader.c swifft.o
 	$(CC) $(file) $(obj) $(flags) -o swifft
 
 clean:
