@@ -1,5 +1,5 @@
 CC = gcc
-flags = -g -std=c11 -mavx -msse4
+flags = -g -std=c11 -mavx2 -msse4 -lpthread
 file = Reader.c
 obj = swifft.o
 
