@@ -1,3 +1,5 @@
+#include "cff.h"
+
 int * cff_encode(char * mess, size_t len_m, int e, int k) {
     mpz_t m;
     mpz_init(m);
@@ -6,7 +8,7 @@ int * cff_encode(char * mess, size_t len_m, int e, int k) {
     
     for (int i = 0, q = 0; i < k; i++) {
         long long choose = comb(e - q, k - i);
-        while (mpz_cmp_si(m, choose) {
+        while (mpz_cmp_si(m, choose)) {
             mpz_sub_ui(m, m, choose);
             q++;
         }

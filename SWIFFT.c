@@ -3,8 +3,9 @@
 
 extern void wannamethod_sse(short c[NUM_COEFS], short x[], short a[]);
 extern void wannamethod_avx(short c[NUM_COEFS], short x[], short a[]);
+extern void mod_reduce_avx(unsigned short c[NUM_COEFS]);
 
-short a_arr[M][N] __attribute((aligned(32))) = {{125,214,86,102,0,223,223,253,188,63,136,214,7,249,137,73,153,31,35,124,221,85,225,13,84,77,118,254,147,138,217,119,137,157,41,142,15,28,209,16,205,216,150,109,46,179,107,236,100,6,212,111,192,225,13,75,100,177,144,210,199,91,104,163},
+unsigned short a_arr[M][N] __attribute((aligned(32))) = {{125,214,86,102,0,223,223,253,188,63,136,214,7,249,137,73,153,31,35,124,221,85,225,13,84,77,118,254,147,138,217,119,137,157,41,142,15,28,209,16,205,216,150,109,46,179,107,236,100,6,212,111,192,225,13,75,100,177,144,210,199,91,104,163},
     {100,211,170,213,88,216,74,188,52,63,136,126,208,31,119,186,11,102,211,155,223,88,67,246,59,191,111,111,211,90,30,149,132,111,144,219,79,42,166,179,179,97,65,167,199,66,147,143,84,116,181,2,240,228,162,189,66,13,36,136,159,188,160,0},
     {55,190,122,49,177,250,47,11,126,126,95,75,17,203,123,75,52,25,166,133,52,244,86,236,181,139,151,134,171,147,46,138,167,154,254,157,187,134,15,48,214,234,151,204,215,169,71,74,69,105,89,250,198,214,29,252,233,184,166,124,39,115,77,237},
     {199,122,176,203,209,88,238,71,79,116,225,69,219,0,151,235,232,170,15,29,153,203,75,43,154,247,235,101,106,138,158,58,178,163,230,44,102,159,207,118,227,161,103,209,35,38,254,82,178,107,51,31,100,254,105,222,39,244,216,167,171,227,131,174},
@@ -80,12 +81,13 @@ void * thread_start(void * args) {
     struct ThreadArgs * data = (struct ThreadArgs *) args;
     for (int i = 0; i < data->count; i++) {
         wannamethod_avx(data->c, data->x, a_arr[0]);
+        mod_reduce_avx(data->c);
     }
     
     return NULL;
 }
 
-void printCoefs(short c[], int size) {
+void printCoefs(unsigned short c[], int size) {
     printf("{");
 	for (int i = 0; i < size; i++) {
 		printf(" %d ", c[i]);
@@ -106,55 +108,60 @@ void gen_bin(short x[], int size) {
 }*/
 
 int main() {
-    int test_size = 8192 * 100;
-    short r[NUM_COEFS] = {0};
-    short x[N] __attribute__((aligned(32)));
+    int num_MB = 100;
+    int test_size = 8192 * num_MB;
+    unsigned short r[NUM_COEFS] = {0};
+    unsigned short x[N] __attribute__((aligned(32)));
     gen_bin(x, N);
     
     clock_t st, en;
 	/*st = clock();
     for (int j = 0; j < test_size; j++) {
-        for (int i = 0; i < M; i++)
+        for (int i = 0; i < M; i++) {
             karatsuba(r, x, a_arr[0]);
+            mod_reduce_avx(r);
+        }
     }
     en = clock();
     printf("Karatsuba execution time: %f\n", ((double) en - st) / CLOCKS_PER_SEC);
     
-    karatsuba(r, x, a_arr[0]);
-    printf("Karatsuba: ");
-    printCoefs(r, NUM_COEFS);
+    memset(r, 0, NUM_COEFS * sizeof(short));*/
     
-    memset(r, 0, NUM_COEFS * sizeof(short));
-    
-    st = clock();
+    /*st = clock();
     for (int j = 0; j < test_size; j++) {
-        for (int i = 0; i < M; i++)
+        for (int i = 0; i < M; i++) {
             wannamethod(r, x, a_arr[i]);
+            mod_reduce_avx(r);
+        }
     }
     en = clock();
-    printf("Wannamethod execution time: %f\n", ((double) en - st) / CLOCKS_PER_SEC);*/
+    printf("Wannamethod execution time: %f\n", ((double) en - st) / CLOCKS_PER_SEC);
     
-    memset(r, 0, NUM_COEFS * sizeof(short));
+    memset(r, 0, NUM_COEFS * sizeof(short));*/
     
-    st = clock();
+    /*st = clock();
     for (int j = 0; j < test_size; j++) {
-        for (int i = 0; i < M; i++)
+        for (int i = 0; i < M; i++) {
             wannamethod_sse(r, x, a_arr[i]);
+            mod_reduce_avx(r);
+        }
     }
     en = clock();
     printf("Wannamethod sse execution time: %f\n", ((double) en - st) / CLOCKS_PER_SEC);
     
-    memset(r, 0, NUM_COEFS * sizeof(short));
+    memset(r, 0, NUM_COEFS * sizeof(short));*/
     
-    st = clock();
+    /*st = clock();
     for (int j = 0; j < test_size; j++) {
-        for (int i = 0; i < M; i++)
+        for (int i = 0; i < M; i++) {
             wannamethod_avx(r, x, a_arr[i]);
+            mod_reduce_avx(r);
+        }
     }
     en = clock();
     printf("Wannamethod avx execution time: %f\n", ((double) en - st) / CLOCKS_PER_SEC);
     
-    memset(r, 0, NUM_COEFS * sizeof(short));
+    memset(r, 0, NUM_COEFS * sizeof(short));*/
     
     struct ThreadArgs args;
     args.c = r; args.x = x; args.count = Kb_per_chunk;
@@ -171,7 +178,9 @@ int main() {
     en = clock();
     printf("Wannamethod avx with threading execution time: %f\n", ((double) en - st) / CLOCKS_PER_SEC);
     
-    /*wannamethod_avx(r, x, a_arr[0]);
+    /*memset(r, 0, NUM_COEFS * sizeof(short));
+    wannamethod_avx(r, x, a_arr[0]);
+    mod_reduce_avx(r);
     printf("Wannamethod: ");
     printCoefs(r, NUM_COEFS);*/
     

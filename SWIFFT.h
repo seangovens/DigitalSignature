@@ -10,6 +10,20 @@
 #define P 257
 #define NUM_COEFS 127
 
+inline void mod_reduce_avx(unsigned short c[NUM_COEFS]) {
+    short save = c[NUM_COEFS-1];
+    for (int i = 0; i < N; i += 16) {
+        __m256i top_vec = _mm256_loadu_si256(c + i);
+        __m256i bot_vec = _mm256_loadu_si256(c + i + N - 1);
+        top_vec = _mm256_add_epi16(top_vec, bot_vec);
+        _mm256_storeu_si256(c + i + N - 1, top_vec);
+    }
+    c[NUM_COEFS-1] = save;
+    
+    for (int i = N - 1; i < NUM_COEFS; i++)
+        c[i] = c[i] % P;
+}
+
 inline void wannamethod_sse(short c[NUM_COEFS], short x[], short a[]) {
     //int num_add = 0;
 	for (int i = 0; i < N; i++) {

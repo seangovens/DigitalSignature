@@ -1,86 +1,61 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "swifft.h"
 #include "cff.h"
 #include "sodium.h"
 
-int main(int argc, char * argv[]) {
-	if (argc != 2) {
-		printf("Usage: Reader filename\n");
-		return 1;
-	}
-	
-	FILE * f;
-	FILE * out;
-	
-	f = fopen(argv[1], "r");
-	char buf[129];
-	
-	int x_arr[16][127];
-	int ind = 0;
-	
-	while (fgets(buf, 129, f)) {
-		
-		for (int i = 0; i < 129; i++) {
-			for (int j = 0; j < 8; j++) {
-				x_arr[i / 8][((i % 8) * 8) + j + 63] = (buf[i] >> j) & 1;
-			}
-		}
-		
-		// WRITE TO FILE SOMEHOW
-		
-		/*printf("{");
-		for (int i = 0; i < 64; i++) {
-			printf(" %d ", *(res + i));
-		}
-		printf("}\n");*/
-		
-		ind++;
-	}
-	
-	clock_t st, en;
-	st = clock();
-	
-	for (int i = 0; i < 4096; i++) {
-		swifft(x_arr);
-	}
-	
-	en = clock();
-	printf("EXECUTION TIME: %f\n", (double) (en - st) / CLOCKS_PER_SEC);
-	
-	fclose(f); fclose(out);
-	
-	return 0;
+#define SIZE_MESS 1
+#define NM 1024
+
+void gen_bin_short(unsigned short x[], int size) {
+    for (int i = 0; i < size; i++) {
+        x[i] = (unsigned short) (rand() % 2);
+    }
 }
 
-char ** gen_sk() {
+void gen_bin(unsigned char x[], int size) {
+    for (int i = 0; i < size; i++) {
+        x[i] = (unsigned char) (rand() % 2);
+    }
 }
 
-char ** gen_pk(char ** sk) {
+/*char ** gen_sk(int e) {
+    char ** sk = malloc(e * sizeof(char *));
+    for (int i = 0; i < e; i++) 
 }
+
+char ** gen_pk(char ** sk, int e) {
+}*/
 
 // Should return appropriate e such that e choose (e / 2) is greater than 2^num_bits_in_message
-int calc_e {
-}
+/*int calc_e(int num_bits) {
+    int val = 2;
+    int lim = (int) pow(2, num_bits);
+    while (comb(val, val / 2) < lim) val++;
+    
+    return val;
+}*/
 
-
-
-char * sign(char * m, size_t num_bytes, char ** sk) {
-    int e = calc_e(num_bytes);
+char * sign(char * m, size_t num_bits) {
+    int e = calc_e(num_bits);
     int k = e / 2;
     int * bm = cff_encode(m, num_bytes, e, k);
     
     char * sig = malloc(N * M * sizeof(char));
     
     for (int i = 0; i < k; i++) {
-        add_vect(sig, *(sk + *(bm + i)));
+        //add_vect(sig, *(sk + *(bm + i)));
+        for (int j = 0; j < 1024; j++) {
+            int placeholder = i + j;
+        }
     }
     
     return sig;
 }
 
-bool verify(char * m, size_t num_bytes, char * sig, char ** pk) {
+/*bool verify(char * m, size_t num_bytes, char * sig, char ** pk) {
     int e = calc_e(num_bytes);
     int k = e / 2;
     int * bm = cff_encode(m, num_bytes, e, k);
@@ -94,4 +69,14 @@ bool verify(char * m, size_t num_bytes, char * sig, char ** pk) {
     int * correct = swifft(sig);
     
     return equals(claim, correct);
+}*/
+
+int main(int argc, char * argv[]) {
+	char m[SIZE_MESS];
+    
+    char * sig = sign(m, SIZE_MESS * 8);
+    
+    free(sig);
+	
+	return 0;
 }
